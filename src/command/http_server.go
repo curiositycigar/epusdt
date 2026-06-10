@@ -40,11 +40,16 @@ var startCmd = &cobra.Command{
 	Short: "start",
 	Long:  "start http service",
 	Run: func(cmd *cobra.Command, args []string) {
+		if staticReleaser != nil {
+			if err := staticReleaser(); err != nil {
+				panic(err)
+			}
+		}
 		// If no config file exists, or if install=true is set in the config,
 		// run the first-run install API on the same port as the main server.
 		// The wizard writes the .env (with install=false) and shuts itself
 		// down so bootstrap.InitApp() can read it normally on the same port.
-		if config.NeedsInstall() {
+		if config.GatewayInstallEnabled() && config.NeedsInstall() {
 			envPath, _ := config.ResolveConfigPath()
 			install.RunInstallServer(install.DefaultInstallAddr, envPath)
 		}
@@ -52,6 +57,16 @@ var startCmd = &cobra.Command{
 		printBanner()
 		HttpServerStart()
 	},
+}
+
+func MaybeReleaseStaticUI() error {
+	if !config.GatewayUIEnabled() {
+		return nil
+	}
+	if staticReleaser == nil {
+		return nil
+	}
+	return staticReleaser()
 }
 
 func HttpServerStart() {
@@ -62,30 +77,34 @@ func HttpServerStart() {
 
 	MiddlewareRegister(e)
 	route.RegisterRoute(e)
-	e.Static(config.StaticPath, config.StaticFilePath)
-
-	// Resolve www/ relative to the executable so SPA routes work regardless
-	// of the working directory. main.go extracts www/ next to the binary.
-	wwwRoot := "./www"
-	if exePath, err := os.Executable(); err == nil {
-		if exePath, err = filepath.EvalSymlinks(exePath); err == nil {
-			wwwRoot = filepath.Join(filepath.Dir(exePath), "www")
-		}
+	if config.GatewayUIEnabled() {
+		e.Static(config.StaticPath, config.StaticFilePath)
 	}
-	e.Use(echoMiddleware.StaticWithConfig(echoMiddleware.StaticConfig{
-		Skipper: func(c echo.Context) bool {
-			path := c.Request().URL.Path
-			if path == "/install" || strings.HasPrefix(path, "/install/") {
-				// The install wizard is only served by install.RunInstallServer
-				// before bootstrap. Once main server starts, block /install.
-				return true
+
+	if config.GatewayUIEnabled() {
+		// Resolve www/ relative to the executable so SPA routes work regardless
+		// of the working directory. main.go extracts www/ next to the binary.
+		wwwRoot := "./www"
+		if exePath, err := os.Executable(); err == nil {
+			if exePath, err = filepath.EvalSymlinks(exePath); err == nil {
+				wwwRoot = filepath.Join(filepath.Dir(exePath), "www")
 			}
-			return luluHttp.ShouldSkipSPAFallback(path)
-		},
-		HTML5: true,
-		Index: "index.html",
-		Root:  wwwRoot,
-	}))
+		}
+		e.Use(echoMiddleware.StaticWithConfig(echoMiddleware.StaticConfig{
+			Skipper: func(c echo.Context) bool {
+				path := c.Request().URL.Path
+				if path == "/install" || strings.HasPrefix(path, "/install/") {
+					// The install wizard is only served by install.RunInstallServer
+					// before bootstrap. Once main server starts, block /install.
+					return true
+				}
+				return luluHttp.ShouldSkipSPAFallback(path)
+			},
+			HTML5: true,
+			Index: "index.html",
+			Root:  wwwRoot,
+		}))
+	}
 
 	httpListen := viper.GetString("http_listen")
 	go func() {

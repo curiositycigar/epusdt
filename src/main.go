@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/GMWalletApp/epusdt/command"
+	"github.com/GMWalletApp/epusdt/config"
 	"github.com/gookit/color"
 )
 
@@ -39,11 +40,9 @@ func extractEmbeddedDir(src embed.FS, embeddedRoot, dstRoot string) error {
 		}
 
 		dstPath := filepath.Join(dstRoot, path)
-
 		if d.IsDir() {
 			return os.MkdirAll(dstPath, 0o755)
 		}
-
 		if err := os.MkdirAll(filepath.Dir(dstPath), 0o755); err != nil {
 			return err
 		}
@@ -65,42 +64,42 @@ func extractEmbeddedDir(src embed.FS, embeddedRoot, dstRoot string) error {
 	})
 }
 
-func releaseStatic(fs embed.FS, target string) (string, error) {
+func releaseStatic(src embed.FS, target string) (string, error) {
 	baseDir, err := executableDir()
 	if err != nil {
 		return "", err
 	}
 
 	targetDir := filepath.Join(baseDir, target)
-
 	if err := os.RemoveAll(targetDir); err != nil {
 		return "", err
 	}
-
 	if err := os.MkdirAll(targetDir, 0o755); err != nil {
 		return "", err
 	}
-
-	if err := extractEmbeddedDir(fs, target, targetDir); err != nil {
+	if err := extractEmbeddedDir(src, target, targetDir); err != nil {
 		return "", err
 	}
-
 	return targetDir, nil
 }
 
 func main() {
-	wwwwPath, err := releaseStatic(wwwDir, "www")
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println("www released to:", wwwwPath)
-
 	defer func() {
 		if err := recover(); err != nil {
 			color.Error.Println("[Start Server Err!!!] ", err)
 		}
 	}()
+	command.RegisterStaticReleaser(func() error {
+		if !config.GatewayUIEnabled() {
+			return nil
+		}
+		wwwPath, err := releaseStatic(wwwDir, "www")
+		if err != nil {
+			return err
+		}
+		fmt.Println("www released to:", wwwPath)
+		return nil
+	})
 	if err := command.Execute(); err != nil {
 		panic(err)
 	}

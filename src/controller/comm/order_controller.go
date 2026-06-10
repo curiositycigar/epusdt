@@ -142,6 +142,8 @@ func (c *BaseCommController) CreateTransactionAndRedirect(ctx echo.Context) (err
 
 	log.Sugar.Debugf("create transaction response: %+v", resp)
 
-	tradeID := resp.TradeId
-	return ctx.Redirect(http.StatusFound, "/pay/checkout-counter/"+tradeID)
+	if resp.PaymentUrl != "" {
+		return ctx.Redirect(http.StatusFound, resp.PaymentUrl)
+	}
+	return c.SucJson(ctx, resp)
 }

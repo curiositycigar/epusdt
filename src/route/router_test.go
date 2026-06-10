@@ -1049,6 +1049,41 @@ func TestEpaySubmitPhpPostFormCompatible(t *testing.T) {
 	}
 }
 
+func TestEpaySubmitPhpReturnsJSONInPureGatewayModeWithoutPaymentURL(t *testing.T) {
+	e := setupTestEnv(t)
+	viper.Set("gateway_pure_mode", true)
+	viper.Set("gateway_payment_url_template", "")
+
+	values := signEpayValues(url.Values{
+		"pid":          {"1"},
+		"name":         {"epay-pure-001"},
+		"type":         {"alipay"},
+		"money":        {"1.00"},
+		"out_trade_no": {"epay-pure-001"},
+		"notify_url":   {"https://93.184.216.34/notify"},
+		"return_url":   {"http://localhost/return"},
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/payments/epay/v1/order/create-transaction/submit.php?"+values.Encode(), nil)
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	resp := parseResp(t, rec)
+	if got := int(resp["status_code"].(float64)); got != http.StatusOK {
+		t.Fatalf("status_code = %d, want 200", got)
+	}
+	dataMap, ok := resp["data"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected response data, got %T", resp["data"])
+	}
+	if got, _ := dataMap["payment_url"].(string); got != "" {
+		t.Fatalf("payment_url = %q, want empty in pure gateway mode without template", got)
+	}
+}
+
 // TestCheckStatus_NotFound verifies that /pay/check-status/:trade_id returns a
 // graceful JSON error (not 500) when the trade_id doesn't exist.
 func TestCheckStatus_NotFound(t *testing.T) {

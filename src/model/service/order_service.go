@@ -17,7 +17,6 @@ import (
 	"github.com/GMWalletApp/epusdt/util/constant"
 	"github.com/GMWalletApp/epusdt/util/log"
 	"github.com/GMWalletApp/epusdt/util/math"
-	"github.com/GMWalletApp/epusdt/util/security"
 	"github.com/dromara/carbon/v2"
 	"github.com/shopspring/decimal"
 )
@@ -150,7 +149,7 @@ func CreateTransaction(req *request.CreateTransactionRequest, apiKey *mdb.ApiKey
 		ReceiveAddress: order.ReceiveAddress,
 		Token:          order.Token,
 		ExpirationTime: expirationTime,
-		PaymentUrl:     fmt.Sprintf("%s/pay/checkout-counter/%s", config.GetAppUri(), order.TradeId),
+		PaymentUrl:     config.BuildPaymentURL(order.TradeId),
 	}
 	return resp, nil
 }
@@ -569,7 +568,7 @@ func buildCheckoutResponse(order *mdb.Orders) *response.CheckoutCounterResponse 
 		Network:        order.Network,
 		ExpirationTime: order.CreatedAt.AddMinutes(config.GetOrderExpirationTime()).TimestampMilli(),
 		RedirectUrl:    order.RedirectUrl,
-		PaymentUrl:     fmt.Sprintf("%s/pay/checkout-counter/%s", config.GetAppUri(), order.TradeId),
+		PaymentUrl:     config.BuildPaymentURL(order.TradeId),
 		CreatedAt:      order.CreatedAt.TimestampMilli(),
 		IsSelected:     order.IsSelected,
 	}
@@ -632,7 +631,7 @@ func switchToOkPay(parent *mdb.Orders, token string) (*response.CheckoutCounterR
 		returnURL = data.GetOkPayReturnURL()
 	}
 	if returnURL == "" {
-		returnURL = fmt.Sprintf("%s/pay/checkout-counter/%s", config.GetAppUri(), parent.TradeId)
+		returnURL = config.BuildPaymentURL(parent.TradeId)
 	}
 
 	tx := dao.Mdb.Begin()

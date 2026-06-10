@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/GMWalletApp/epusdt/config"
+	"github.com/GMWalletApp/epusdt/gateway"
 	"github.com/GMWalletApp/epusdt/model/dao"
 	"github.com/GMWalletApp/epusdt/model/data"
 	"github.com/GMWalletApp/epusdt/mq"
@@ -18,6 +19,7 @@ var initOnce sync.Once
 
 func InitApp() {
 	initOnce.Do(func() {
+		var err error
 		config.Init()
 		log.Init()
 		dao.Init()
@@ -25,6 +27,9 @@ func InitApp() {
 		// GetRateApiUrl / GetUsdtRate can consult admin-configured values.
 		config.SettingsGetString = func(key string) string {
 			return data.GetSettingString(key, "")
+		}
+		if err := gateway.SyncFromFile(); err != nil {
+			color.Red.Printf("[bootstrap] sync gateway config err=%s\n", err)
 		}
 		// Seed rate.api_url from .env into the settings table on first run
 		// so the admin UI can display and change it without a code restart.
@@ -36,23 +41,25 @@ func InitApp() {
 				}
 			}
 		}
-		// Seed admin account and JWT secret so the management console is
-		// immediately usable on a fresh install. Both are idempotent.
-		initialPassword, isNew, err := data.EnsureDefaultAdmin()
-		if err != nil {
-			color.Red.Printf("[bootstrap] ensure default admin err=%s\n", err)
-		}
-		if isNew {
-			color.Yellow.Println("╔════════════════════════════════════════════════════════════════════════╗")
-			color.Yellow.Println("║  Default admin account created. Save these credentials now.           ║")
-			color.Yellow.Printf("║  Username: %-54s║\n", "admin")
-			color.Yellow.Printf("║  Password: %-54s║\n", initialPassword)
-			color.Yellow.Println("║  The one-time password API remains available until first fetch.       ║")
-			color.Yellow.Println("║  GET /admin/api/v1/auth/init-password (one-time)                      ║")
-			color.Yellow.Println("╚════════════════════════════════════════════════════════════════════════╝")
-		}
-		if _, err := appjwt.EnsureSecret(); err != nil {
-			color.Red.Printf("[bootstrap] ensure jwt secret err=%s\n", err)
+		if config.GatewayAdminEnabled() {
+			// Seed admin account and JWT secret so the management console is
+			// immediately usable on a fresh install. Both are idempotent.
+			initialPassword, isNew, err := data.EnsureDefaultAdmin()
+			if err != nil {
+				color.Red.Printf("[bootstrap] ensure default admin err=%s\n", err)
+			}
+			if isNew {
+				color.Yellow.Println("╔════════════════════════════════════════════════════════════════════════╗")
+				color.Yellow.Println("║  Default admin account created. Save these credentials now.           ║")
+				color.Yellow.Printf("║  Username: %-54s║\n", "admin")
+				color.Yellow.Printf("║  Password: %-54s║\n", initialPassword)
+				color.Yellow.Println("║  The one-time password API remains available until first fetch.       ║")
+				color.Yellow.Println("║  GET /admin/api/v1/auth/init-password (one-time)                      ║")
+				color.Yellow.Println("╚════════════════════════════════════════════════════════════════════════╝")
+			}
+			if _, err = appjwt.EnsureSecret(); err != nil {
+				color.Red.Printf("[bootstrap] ensure jwt secret err=%s\n", err)
+			}
 		}
 		// Seed one universal default API key on fresh installs. The seeded
 		// key (PID=1000) works for all three gateway flows.

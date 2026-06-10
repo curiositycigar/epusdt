@@ -62,6 +62,18 @@ func GetNotificationChannelByID(id uint64) (*mdb.NotificationChannel, error) {
 	return row, err
 }
 
+func GetNotificationChannelByTypeAndName(channelType, name string) (*mdb.NotificationChannel, error) {
+	row := new(mdb.NotificationChannel)
+	tx := dao.Mdb.Model(row).Where("type = ?", strings.ToLower(strings.TrimSpace(channelType)))
+	if trimmedName := strings.TrimSpace(name); trimmedName == "" {
+		tx = tx.Where("name = '' OR name IS NULL")
+	} else {
+		tx = tx.Where("name = ?", trimmedName)
+	}
+	err := tx.Limit(1).Find(row).Error
+	return row, err
+}
+
 // CreateNotificationChannel inserts a new row.
 func CreateNotificationChannel(row *mdb.NotificationChannel) error {
 	return dao.Mdb.Create(row).Error

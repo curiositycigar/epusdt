@@ -135,6 +135,16 @@ func GetRpcNodeByID(id uint64) (*mdb.RpcNode, error) {
 	return row, err
 }
 
+func GetRPCNodeByNetworkAndURL(network, rawURL string) (*mdb.RpcNode, error) {
+	row := new(mdb.RpcNode)
+	err := dao.Mdb.Model(row).
+		Where("network = ?", strings.ToLower(strings.TrimSpace(network))).
+		Where("url = ?", strings.TrimSpace(rawURL)).
+		Limit(1).
+		Find(row).Error
+	return row, err
+}
+
 // CreateRpcNode inserts a row.
 func CreateRpcNode(row *mdb.RpcNode) error {
 	row.Purpose = NormalizeRpcNodePurpose(row.Purpose)

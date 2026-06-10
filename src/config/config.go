@@ -209,6 +209,22 @@ func resolveConfigFilePath() (string, error) {
 	return normalizeConfiguredPath(".env")
 }
 
+func ReadBoolFromConfigFile(key string, fallback bool) bool {
+	envPath, exists := ResolveConfigPath()
+	if !exists {
+		return fallback
+	}
+	v := viper.New()
+	v.SetConfigFile(envPath)
+	if err := v.ReadInConfig(); err != nil {
+		return fallback
+	}
+	if !v.IsSet(key) {
+		return fallback
+	}
+	return v.GetBool(key)
+}
+
 // NeedsInstall returns true when the first-run install wizard should run.
 // It returns true if the config file does not exist yet, or if the file
 // exists and contains install=true (an explicit reset flag).
@@ -312,6 +328,65 @@ func GetAppName() string {
 
 func GetAppUri() string {
 	return viper.GetString("app_uri")
+}
+
+func IsPureGatewayMode() bool {
+	if viper.IsSet("gateway_pure_mode") {
+		return viper.GetBool("gateway_pure_mode")
+	}
+	return ReadBoolFromConfigFile("gateway_pure_mode", false)
+}
+
+func GatewayAdminEnabled() bool {
+	return !IsPureGatewayMode()
+}
+
+func GatewayInstallEnabled() bool {
+	return !IsPureGatewayMode()
+}
+
+func GatewayUIEnabled() bool {
+	return !IsPureGatewayMode()
+}
+
+func GetGatewayConfigPath() string {
+	raw := strings.TrimSpace(viper.GetString("gateway_config"))
+	if raw == "" {
+		return ""
+	}
+	if filepath.IsAbs(raw) {
+		return raw
+	}
+	raw = strings.TrimPrefix(strings.TrimPrefix(raw, "/"), "\\")
+	return filepath.Join(configRootPath, filepath.FromSlash(raw))
+}
+
+func GetGatewayPaymentURLTemplate() string {
+	return strings.TrimSpace(viper.GetString("gateway_payment_url_template"))
+}
+
+func BuildPaymentURL(tradeID string) string {
+	tradeID = strings.TrimSpace(tradeID)
+	if tradeID == "" {
+		return ""
+	}
+
+	if template := GetGatewayPaymentURLTemplate(); template != "" {
+		if strings.Contains(template, "{trade_id}") {
+			return strings.ReplaceAll(template, "{trade_id}", tradeID)
+		}
+		return strings.TrimRight(template, "/") + "/" + tradeID
+	}
+
+	if !GatewayUIEnabled() {
+		return ""
+	}
+
+	appURI := strings.TrimRight(strings.TrimSpace(GetAppUri()), "/")
+	if appURI == "" {
+		return ""
+	}
+	return appURI + "/pay/checkout-counter/" + tradeID
 }
 
 func GetRateApiUrl() string {

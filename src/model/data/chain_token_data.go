@@ -82,6 +82,16 @@ func GetChainTokenByID(id uint64) (*mdb.ChainToken, error) {
 	return row, err
 }
 
+func GetChainTokenByNetworkAndSymbol(network, symbol string) (*mdb.ChainToken, error) {
+	row := new(mdb.ChainToken)
+	err := dao.Mdb.Model(row).
+		Where("network = ?", strings.ToLower(strings.TrimSpace(network))).
+		Where("symbol = ?", strings.ToUpper(strings.TrimSpace(symbol))).
+		Limit(1).
+		Find(row).Error
+	return row, err
+}
+
 // CreateChainToken inserts a row.
 // If a soft-deleted row with the same (network, symbol) exists it is
 // restored with the incoming field values rather than creating a duplicate

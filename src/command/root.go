@@ -6,6 +6,7 @@ import (
 )
 
 var configPath string
+var staticReleaser func() error
 
 var rootCmd = &cobra.Command{}
 
@@ -19,4 +20,8 @@ func init() {
 		config.SetConfigPath(configPath)
 	}
 	rootCmd.AddCommand(httpCmd)
+}
+
+func RegisterStaticReleaser(fn func() error) {
+	staticReleaser = fn
 }

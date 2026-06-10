@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/GMWalletApp/epusdt/config"
 	"github.com/GMWalletApp/epusdt/controller/admin"
 	"github.com/GMWalletApp/epusdt/controller/comm"
 	"github.com/GMWalletApp/epusdt/middleware"
@@ -165,7 +166,9 @@ func RegisterRoute(e *echo.Echo) {
 		return comm.Ctrl.CreateTransactionAndRedirect(ctx)
 	})
 
-	registerAdminRoutes(e)
+	if config.GatewayAdminEnabled() {
+		registerAdminRoutes(e)
+	}
 }
 
 // registerAdminRoutes wires the management console API surface under

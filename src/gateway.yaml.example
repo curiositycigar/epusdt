@@ -1,0 +1,59 @@
+merchants:
+  - name: app-a
+    pid: "1000"
+    secret_key: "replace-with-random-secret"
+    notify_url: "https://merchant.example/notify"
+    ip_whitelist:
+      - "127.0.0.1/32"
+    enabled: true
+
+wallets:
+  - network: tron
+    address: TTestTronAddress001
+    remark: primary tron wallet
+    source: manual
+    enabled: true
+
+chains:
+  - network: tron
+    display_name: TRON
+    enabled: true
+    min_confirmations: 1
+    scan_interval_sec: 5
+
+chain_tokens:
+  - network: tron
+    symbol: USDT
+    contract_address: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
+    decimals: 6
+    enabled: true
+    min_amount: 0
+
+rpc_nodes:
+  - network: tron
+    url: https://api.trongrid.io
+    type: http
+    weight: 1
+    enabled: true
+    purpose: general
+    status: unknown
+
+settings:
+  - group: rate
+    key: rate.forced_rate_list
+    value: '{"cny":{"usdt":0.14635}}'
+    type: json
+  - group: epay
+    key: epay.default_network
+    value: tron
+    type: string
+  - group: epay
+    key: epay.default_token
+    value: usdt
+    type: string
+  - group: epay
+    key: epay.default_currency
+    value: cny
+    type: string
+
+notification_channels: []

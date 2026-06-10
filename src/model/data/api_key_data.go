@@ -25,6 +25,15 @@ func GetEnabledApiKey(pid string) (*mdb.ApiKey, error) {
 	return row, err
 }
 
+func GetApiKeyByPIDAnyStatus(pid string) (*mdb.ApiKey, error) {
+	row := new(mdb.ApiKey)
+	err := dao.Mdb.Model(row).
+		Where("pid = ?", strings.TrimSpace(pid)).
+		Limit(1).
+		Find(row).Error
+	return row, err
+}
+
 // GetApiKeyByID fetches a row by primary key (including disabled).
 func GetApiKeyByID(id uint64) (*mdb.ApiKey, error) {
 	row := new(mdb.ApiKey)

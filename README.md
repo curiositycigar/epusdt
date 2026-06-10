@@ -205,3 +205,42 @@ Good Morning Technology, LLC 为依据美国法律设立的主体，并将在适
     Epusdt · Easy Payment USDT · Open Source Payment Gateway · 多链收款
   </sub>
 </p>
+
+
+## Build & Start
+cd src
+go build -o ../output/epusdt .
+
+chmod +x ../output/epusdt
+cd ../output
+./epusdt http start
+
+## Pure Gateway Mode
+
+如果你只想把 Epusdt 当作纯支付网关服务使用，可以开启纯网关模式：
+
+1. 在 `.env` 中设置：
+
+```env
+gateway_pure_mode=true
+gateway_config=gateway.yaml
+```
+
+2. 参考 [gateway.yaml.example](/Users/lucasyou/work/projects/epusdt/src/gateway.yaml.example) 提供商户、钱包、链、币种、RPC 和 settings 配置。
+
+字段详细说明见：[gateway.yaml 配置说明](/Users/lucasyou/work/projects/epusdt/wiki/GATEWAY_CONFIG.md)
+
+3. 启动后服务会在启动阶段把 `gateway.yaml` 同步到数据库，订单、锁、回调等运行时数据仍然保留在数据库中。
+
+纯网关模式下：
+
+- 不启动安装向导
+- 不注册 `/admin/api/v1/*` 管理后台接口
+- 不依赖内置后台页面和收银台页面
+- `create-transaction` 返回的 `payment_url` 默认为空
+
+如果你希望 `payment_url` 返回你自己的前端支付页地址，可以在 `.env` 中额外配置：
+
+```env
+gateway_payment_url_template=https://your-app.example/pay/{trade_id}
+```
