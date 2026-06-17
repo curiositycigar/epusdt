@@ -244,3 +244,29 @@ gateway_config=gateway.yaml
 ```env
 gateway_payment_url_template=https://your-app.example/pay/{trade_id}
 ```
+
+### 一键运行与部署
+
+本地一键运行：
+
+```bash
+make run-local
+```
+
+构建发布包：
+
+```bash
+make build-release
+```
+
+远程一键部署：
+
+```bash
+DEPLOY_HOST=1.2.3.4 DEPLOY_USER=root make deploy-remote
+```
+
+说明：
+
+- 本地运行脚本会自动生成 `output-pure-gateway/`
+- 构建脚本会生成 `dist/epusdt-pure-gateway/` 和压缩包
+- 远程部署脚本默认部署到 `/opt/epusdt`

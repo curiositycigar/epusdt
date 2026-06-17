@@ -1,0 +1,269 @@
+merchants:
+  - name: default
+    pid: "1000"
+    secret_key: "65e96239fa16c86e07b07097c3a756f3fed479f436d9a9bdb1c5eb641c46bcdd"
+    notify_url: ""
+    ip_whitelist: []
+    enabled: true
+
+wallets:
+  - network: tron
+    address: TVE1t74kWRwBcww8Viidjanr7Z5nzPhZZu
+    remark: 测试tron-2
+    source: manual
+    enabled: true
+  - network: ethereum
+    address: 0xf20fd6aeb9ca8a03c77c75edba4baf61786db545
+    remark: 测试eth-2
+    source: manual
+    enabled: true
+
+chains:
+  - network: tron
+    display_name: TRON
+    enabled: true
+    min_confirmations: 1
+    scan_interval_sec: 5
+  - network: ethereum
+    display_name: Ethereum
+    enabled: true
+    min_confirmations: 3
+    scan_interval_sec: 5
+  - network: solana
+    display_name: Solana
+    enabled: false
+    min_confirmations: 1
+    scan_interval_sec: 5
+  - network: binance
+    display_name: BSC
+    enabled: false
+    min_confirmations: 3
+    scan_interval_sec: 5
+  - network: polygon
+    display_name: Polygon
+    enabled: false
+    min_confirmations: 3
+    scan_interval_sec: 5
+  - network: plasma
+    display_name: Plasma
+    enabled: false
+    min_confirmations: 1
+    scan_interval_sec: 5
+
+chain_tokens:
+  - network: binance
+    symbol: USDT
+    contract_address: 0x55d398326f99059fF775485246999027B3197955
+    decimals: 18
+    enabled: false
+    min_amount: 0
+  - network: binance
+    symbol: USDC
+    contract_address: 0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d
+    decimals: 18
+    enabled: false
+    min_amount: 0
+  - network: ethereum
+    symbol: USDT
+    contract_address: 0xdAC17F958D2ee523a2206206994597C13D831ec7
+    decimals: 6
+    enabled: true
+    min_amount: 0
+  - network: ethereum
+    symbol: USDC
+    contract_address: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+    decimals: 6
+    enabled: false
+    min_amount: 0
+  - network: plasma
+    symbol: USDT
+    contract_address: 0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb
+    decimals: 6
+    enabled: false
+    min_amount: 0
+  - network: polygon
+    symbol: USDT
+    contract_address: 0xc2132D05D31c914a87C6611C10748AEb04B58e8F
+    decimals: 6
+    enabled: false
+    min_amount: 0
+  - network: polygon
+    symbol: USDC
+    contract_address: 0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359
+    decimals: 6
+    enabled: false
+    min_amount: 0
+  - network: polygon
+    symbol: USDC.e
+    contract_address: 0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174
+    decimals: 6
+    enabled: false
+    min_amount: 0
+  - network: solana
+    symbol: USDT
+    contract_address: Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB
+    decimals: 6
+    enabled: false
+    min_amount: 0
+  - network: solana
+    symbol: USDC
+    contract_address: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
+    decimals: 6
+    enabled: false
+    min_amount: 0
+  - network: solana
+    symbol: SOL
+    contract_address: ""
+    decimals: 9
+    enabled: false
+    min_amount: 0
+  - network: tron
+    symbol: USDT
+    contract_address: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
+    decimals: 6
+    enabled: true
+    min_amount: 0
+  - network: tron
+    symbol: TRX
+    contract_address: ""
+    decimals: 6
+    enabled: false
+    min_amount: 0
+
+rpc_nodes:
+  - network: binance
+    url: wss://bsc.drpc.org
+    type: ws
+    weight: 1
+    api_key: ""
+    enabled: false
+    purpose: general
+    status: ok
+  - network: binance
+    url: https://rpc.epusdt.com/binance
+    type: http
+    weight: 1
+    api_key: ""
+    enabled: false
+    purpose: manual_verify
+    status: unknown
+  - network: ethereum
+    url: wss://ethereum.publicnode.com
+    type: ws
+    weight: 1
+    api_key: ""
+    enabled: true
+    purpose: general
+    status: ok
+  - network: ethereum
+    url: https://rpc.epusdt.com/ethereum
+    type: http
+    weight: 1
+    api_key: ""
+    enabled: true
+    purpose: manual_verify
+    status: unknown
+  - network: plasma
+    url: wss://rpc.plasma.to
+    type: ws
+    weight: 1
+    api_key: ""
+    enabled: false
+    purpose: general
+    status: ok
+  - network: polygon
+    url: wss://polygon-bor-rpc.publicnode.com
+    type: ws
+    weight: 1
+    api_key: ""
+    enabled: false
+    purpose: general
+    status: ok
+  - network: polygon
+    url: https://rpc.epusdt.com/polygon
+    type: http
+    weight: 1
+    api_key: ""
+    enabled: false
+    purpose: manual_verify
+    status: unknown
+  - network: solana
+    url: https://api.mainnet-beta.solana.com
+    type: http
+    weight: 1
+    api_key: ""
+    enabled: false
+    purpose: general
+    status: down
+  - network: tron
+    url: https://api.trongrid.io
+    type: http
+    weight: 1
+    api_key: ""
+    enabled: true
+    purpose: general
+    status: ok
+
+settings:
+  - group: brand
+    key: brand.background_color
+    value: "rgba(0, 0, 0, 0)"
+    type: string
+  - group: brand
+    key: brand.background_image_url
+    value: ""
+    type: string
+  - group: brand
+    key: brand.checkout_name
+    value: Nova
+    type: string
+  - group: brand
+    key: brand.logo_url
+    value: ""
+    type: string
+  - group: brand
+    key: brand.site_title
+    value: Nova
+    type: string
+  - group: brand
+    key: brand.support_url
+    value: ""
+    type: string
+  - group: epay
+    key: epay.default_token
+    value: usdt
+    type: string
+  - group: epay
+    key: epay.default_currency
+    value: usd
+    type: string
+  - group: epay
+    key: epay.default_network
+    value: tron
+    type: string
+  - group: okpay
+    key: okpay.enabled
+    value: "false"
+    type: bool
+  - group: okpay
+    key: okpay.api_url
+    value: https://api.okaypay.me/shop/
+    type: string
+  - group: okpay
+    key: okpay.callback_url
+    value: http://127.0.0.1:8000/payments/okpay/v1/notify
+    type: string
+  - group: okpay
+    key: okpay.timeout_seconds
+    value: "10"
+    type: int
+  - group: okpay
+    key: okpay.allow_tokens
+    value: USDT,TRX
+    type: string
+  - group: system
+    key: system.amount_precision
+    value: "2"
+    type: int
+
+notification_channels: []

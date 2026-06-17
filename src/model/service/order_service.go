@@ -58,9 +58,9 @@ func CreateTransaction(req *request.CreateTransactionRequest, apiKey *mdb.ApiKey
 	currency := strings.ToUpper(strings.TrimSpace(req.Currency))
 	network := strings.ToLower(strings.TrimSpace(req.Network))
 	notifyURL := strings.TrimSpace(req.NotifyUrl)
-	if err := security.ValidatePublicHTTPURL(notifyURL); err != nil {
-		return nil, constant.NotifyURLErr
-	}
+	// if err := security.ValidatePublicHTTPURL(notifyURL); err != nil {
+	// 	return nil, constant.NotifyURLErr
+	// }
 
 	gCreateTransactionLock.Lock()
 	defer gCreateTransactionLock.Unlock()

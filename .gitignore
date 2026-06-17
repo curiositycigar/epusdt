@@ -9,3 +9,6 @@ src/*.db-wal
 .gocache
 
 output
+.gotmp
+dist
+output-pure-gateway
