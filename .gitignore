@@ -8,6 +8,7 @@ src/*.db-wal
 .env
 .gocache
 .gomodcache
+gateway.yaml
 
 output
 .gotmp
