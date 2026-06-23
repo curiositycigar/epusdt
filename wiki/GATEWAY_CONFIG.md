@@ -76,6 +76,10 @@ rpc_nodes:
     status: unknown
 
 settings:
+  - group: system
+    key: system.amount_precision
+    value: "2"
+    type: int
   - group: rate
     key: rate.forced_rate_list
     value: '{"cny":{"usdt":0.14635}}'
@@ -332,6 +336,10 @@ rpc_nodes:
 
 ```yaml
 settings:
+  - group: system
+    key: system.amount_precision
+    value: "2"
+    type: int
   - group: rate
     key: rate.forced_rate_list
     value: '{"cny":{"usdt":0.14635}}'

@@ -268,7 +268,7 @@ PAYMENT_URL_TEMPLATE= \
 DEPLOY_HOST=199.33.121.226 \
 DEPLOY_USER=root \
 SUPERVISOR_CONF_DIR=/etc/supervisord.d \
-SUPERVISOR_CONF_EXT=.ini \
+SUPERVISOR_CONF_EXT=.conf \
 make deploy-remote
 ```
 
