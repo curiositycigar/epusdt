@@ -11,13 +11,31 @@ DATA_DIR="$RUN_DIR/data"
 RUNTIME_DIR="$RUN_DIR/runtime"
 GO_CACHE_DIR="$ROOT_DIR/.gocache"
 GO_TMP_DIR="$ROOT_DIR/.gotmp"
+GO_MOD_CACHE_DIR="$ROOT_DIR/.gomodcache"
+GOPROXY_VALUE="${GOPROXY:-https://proxy.golang.org,direct}"
+GOSUMDB_VALUE="${GOSUMDB:-sum.golang.org}"
+GO_DOWNLOAD_RETRIES="${GO_DOWNLOAD_RETRIES:-3}"
 
-APP_URI="${APP_URI:-http://127.0.0.1:8000}"
-HTTP_LISTEN="${HTTP_LISTEN:-127.0.0.1:8000}"
+APP_URI="${APP_URI:-http://127.0.0.1:8325}"
+HTTP_LISTEN="${HTTP_LISTEN:-127.0.0.1:8325}"
 PAYMENT_URL_TEMPLATE="${PAYMENT_URL_TEMPLATE:-http://127.0.0.1:3000/pay/{trade_id}}"
 
+retry() {
+  local attempts="$1"
+  shift
+  local n=1
+  until "$@"; do
+    if [ "$n" -ge "$attempts" ]; then
+      return 1
+    fi
+    echo "command failed, retrying ($n/$attempts): $*"
+    n=$((n + 1))
+    sleep 2
+  done
+}
+
 mkdir -p "$RUN_DIR" "$DATA_DIR" "$RUNTIME_DIR"
-mkdir -p "$GO_CACHE_DIR" "$GO_TMP_DIR"
+mkdir -p "$GO_CACHE_DIR" "$GO_TMP_DIR" "$GO_MOD_CACHE_DIR"
 
 cp "$SRC_DIR/gateway.yaml" "$GATEWAY_PATH"
 
@@ -60,7 +78,21 @@ install=false
 EOF
 
 pushd "$SRC_DIR" >/dev/null
-env GOCACHE="$GO_CACHE_DIR" GOTMPDIR="$GO_TMP_DIR" go build -o "$BIN_PATH" .
+retry "$GO_DOWNLOAD_RETRIES" env \
+  GOCACHE="$GO_CACHE_DIR" \
+  GOTMPDIR="$GO_TMP_DIR" \
+  GOMODCACHE="$GO_MOD_CACHE_DIR" \
+  GOPROXY="$GOPROXY_VALUE" \
+  GOSUMDB="$GOSUMDB_VALUE" \
+  go mod download
+
+env \
+  GOCACHE="$GO_CACHE_DIR" \
+  GOTMPDIR="$GO_TMP_DIR" \
+  GOMODCACHE="$GO_MOD_CACHE_DIR" \
+  GOPROXY="$GOPROXY_VALUE" \
+  GOSUMDB="$GOSUMDB_VALUE" \
+  go build -o "$BIN_PATH" .
 popd >/dev/null
 
 chmod +x "$BIN_PATH"

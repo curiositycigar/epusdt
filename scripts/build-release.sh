@@ -7,20 +7,42 @@ DIST_DIR="$ROOT_DIR/dist/epusdt-pure-gateway"
 BIN_PATH="$DIST_DIR/epusdt"
 ENV_PATH="$DIST_DIR/.env"
 GATEWAY_PATH="$DIST_DIR/gateway.yaml"
-SERVICE_PATH="$DIST_DIR/epusdt.service"
+SUPERVISOR_CONF_PATH="$DIST_DIR/epusdt.supervisor.conf"
 ARCHIVE_PATH="$ROOT_DIR/dist/epusdt-pure-gateway.tar.gz"
 GO_CACHE_DIR="$ROOT_DIR/.gocache"
 GO_TMP_DIR="$ROOT_DIR/.gotmp"
+GO_MOD_CACHE_DIR="$ROOT_DIR/.gomodcache"
+GOPROXY_VALUE="${GOPROXY:-https://proxy.golang.org,direct}"
+GOSUMDB_VALUE="${GOSUMDB:-sum.golang.org}"
+GO_DOWNLOAD_RETRIES="${GO_DOWNLOAD_RETRIES:-3}"
 
 APP_URI="${APP_URI:-https://pay.example.com}"
-HTTP_LISTEN="${HTTP_LISTEN:-0.0.0.0:8000}"
+HTTP_LISTEN="${HTTP_LISTEN:-127.0.0.1:8325}"
 PAYMENT_URL_TEMPLATE="${PAYMENT_URL_TEMPLATE:-https://a.example.com/pay/{trade_id}}"
 DEPLOY_DIR="${DEPLOY_DIR:-/opt/epusdt}"
+SERVICE_NAME="${SERVICE_NAME:-epusdt}"
 RUN_USER="${RUN_USER:-root}"
+SUPERVISOR_LOG_DIR="${SUPERVISOR_LOG_DIR:-$DEPLOY_DIR/logs}"
+TARGET_GOOS="${TARGET_GOOS:-linux}"
+TARGET_GOARCH="${TARGET_GOARCH:-amd64}"
+
+retry() {
+  local attempts="$1"
+  shift
+  local n=1
+  until "$@"; do
+    if [ "$n" -ge "$attempts" ]; then
+      return 1
+    fi
+    echo "command failed, retrying ($n/$attempts): $*"
+    n=$((n + 1))
+    sleep 2
+  done
+}
 
 rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR/data" "$DIST_DIR/runtime" "$DIST_DIR/logs"
-mkdir -p "$GO_CACHE_DIR" "$GO_TMP_DIR"
+mkdir -p "$GO_CACHE_DIR" "$GO_TMP_DIR" "$GO_MOD_CACHE_DIR"
 
 cp "$SRC_DIR/gateway.yaml" "$GATEWAY_PATH"
 
@@ -62,32 +84,52 @@ gateway_payment_url_template=$PAYMENT_URL_TEMPLATE
 install=false
 EOF
 
-cat >"$SERVICE_PATH" <<EOF
-[Unit]
-Description=Epusdt Pure Gateway
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=simple
-WorkingDirectory=$DEPLOY_DIR
-ExecStart=$DEPLOY_DIR/epusdt --config $DEPLOY_DIR http start
-Restart=always
-RestartSec=3
-User=$RUN_USER
-
-[Install]
-WantedBy=multi-user.target
+cat >"$SUPERVISOR_CONF_PATH" <<EOF
+[program:$SERVICE_NAME]
+command=$DEPLOY_DIR/epusdt --config $DEPLOY_DIR http start
+directory=$DEPLOY_DIR
+user=$RUN_USER
+autostart=true
+autorestart=true
+startsecs=3
+startretries=10
+stdout_logfile=$SUPERVISOR_LOG_DIR/epusdt.log
+stderr_logfile=$SUPERVISOR_LOG_DIR/epusdt.err.log
+stopasgroup=true
+killasgroup=true
 EOF
 
 pushd "$SRC_DIR" >/dev/null
-env GOCACHE="$GO_CACHE_DIR" GOTMPDIR="$GO_TMP_DIR" go build -o "$BIN_PATH" .
+retry "$GO_DOWNLOAD_RETRIES" env \
+  GOCACHE="$GO_CACHE_DIR" \
+  GOTMPDIR="$GO_TMP_DIR" \
+  GOMODCACHE="$GO_MOD_CACHE_DIR" \
+  GOPROXY="$GOPROXY_VALUE" \
+  GOSUMDB="$GOSUMDB_VALUE" \
+  go mod download
+
+env \
+  GOCACHE="$GO_CACHE_DIR" \
+  GOTMPDIR="$GO_TMP_DIR" \
+  GOMODCACHE="$GO_MOD_CACHE_DIR" \
+  GOPROXY="$GOPROXY_VALUE" \
+  GOSUMDB="$GOSUMDB_VALUE" \
+  GOOS="$TARGET_GOOS" \
+  GOARCH="$TARGET_GOARCH" \
+  CGO_ENABLED=0 \
+  go build -o "$BIN_PATH" .
 popd >/dev/null
 
 chmod +x "$BIN_PATH"
 
 mkdir -p "$ROOT_DIR/dist"
-tar -C "$ROOT_DIR/dist" -czf "$ARCHIVE_PATH" "$(basename "$DIST_DIR")"
+TAR_FLAGS=(-C "$ROOT_DIR/dist" -czf "$ARCHIVE_PATH" "$(basename "$DIST_DIR")")
+if tar --help 2>/dev/null | grep -q -- '--no-mac-metadata'; then
+  env COPYFILE_DISABLE=1 COPY_EXTENDED_ATTRIBUTES_DISABLE=1 tar --no-mac-metadata "${TAR_FLAGS[@]}"
+else
+  env COPYFILE_DISABLE=1 COPY_EXTENDED_ATTRIBUTES_DISABLE=1 tar "${TAR_FLAGS[@]}"
+fi
 
 echo "release dir: $DIST_DIR"
 echo "archive:     $ARCHIVE_PATH"
+echo "target:      ${TARGET_GOOS}/${TARGET_GOARCH}"

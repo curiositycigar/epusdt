@@ -262,7 +262,14 @@ make build-release
 远程一键部署：
 
 ```bash
-DEPLOY_HOST=1.2.3.4 DEPLOY_USER=root make deploy-remote
+APP_URI=http://127.0.0.1:8325 \
+HTTP_LISTEN=127.0.0.1:8325 \
+PAYMENT_URL_TEMPLATE= \
+DEPLOY_HOST=199.33.121.226 \
+DEPLOY_USER=root \
+SUPERVISOR_CONF_DIR=/etc/supervisord.d \
+SUPERVISOR_CONF_EXT=.ini \
+make deploy-remote
 ```
 
 说明：
@@ -270,3 +277,8 @@ DEPLOY_HOST=1.2.3.4 DEPLOY_USER=root make deploy-remote
 - 本地运行脚本会自动生成 `output-pure-gateway/`
 - 构建脚本会生成 `dist/epusdt-pure-gateway/` 和压缩包
 - 远程部署脚本默认部署到 `/opt/epusdt`
+- 线上进程管理默认使用 `supervisor`
+- 发布脚本默认构建 `linux/amd64` 二进制
+- 线上日志默认写到 `/opt/epusdt/logs/`
+- 如果遇到 `go mod download` 或 `unexpected EOF`，可显式传 `GOPROXY`，例如 `GOPROXY=https://proxy.golang.org,direct`
+- 如果远端 supervisor 目录或后缀和默认值不一致，请手动传 `SUPERVISOR_CONF_DIR` 和 `SUPERVISOR_CONF_EXT`
