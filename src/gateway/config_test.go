@@ -13,6 +13,9 @@ import (
 )
 
 func TestSyncFromFileSeedsMerchantWalletAndSettings(t *testing.T) {
+	viper.Reset()
+	defer viper.Reset()
+
 	cleanup := testutil.SetupTestDatabases(t)
 	defer cleanup()
 
@@ -41,6 +44,7 @@ settings:
 	}
 
 	viper.Set("gateway_config", configPath)
+	viper.Set("gateway_pure_mode", true)
 	config.SettingsGetString = func(key string) string {
 		return data.GetSettingString(key, "")
 	}
@@ -73,5 +77,107 @@ settings:
 
 	if got := data.GetSettingString(mdb.SettingKeyRateForcedRateList, ""); got != `{"cny":{"usdt":0.25}}` {
 		t.Fatalf("rate.forced_rate_list = %q, want synced value", got)
+	}
+}
+
+func TestSyncFromFileDisablesWalletsMissingFromConfig(t *testing.T) {
+	viper.Reset()
+	defer viper.Reset()
+
+	cleanup := testutil.SetupTestDatabases(t)
+	defer cleanup()
+
+	if _, err := data.AddWalletAddressWithNetwork("tron", "TOldWalletShouldDisable001"); err != nil {
+		t.Fatalf("seed old wallet: %v", err)
+	}
+
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "gateway.yaml")
+	content := `
+wallets:
+  - network: tron
+    address: TNewWalletOnly001
+    remark: new wallet
+    enabled: true
+`
+	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+		t.Fatalf("write gateway config: %v", err)
+	}
+
+	viper.Set("gateway_config", configPath)
+	viper.Set("gateway_pure_mode", true)
+	config.SettingsGetString = func(key string) string {
+		return data.GetSettingString(key, "")
+	}
+
+	if err := SyncFromFile(); err != nil {
+		t.Fatalf("SyncFromFile(): %v", err)
+	}
+
+	oldRow, err := data.GetWalletAddressByNetworkAndAddress("tron", "TOldWalletShouldDisable001")
+	if err != nil {
+		t.Fatalf("reload old wallet: %v", err)
+	}
+	if oldRow.Status != mdb.TokenStatusDisable {
+		t.Fatalf("old wallet status = %d, want %d", oldRow.Status, mdb.TokenStatusDisable)
+	}
+
+	rows, err := data.GetAvailableWalletAddressByNetwork("tron")
+	if err != nil {
+		t.Fatalf("GetAvailableWalletAddressByNetwork(): %v", err)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("enabled wallet count = %d, want 1", len(rows))
+	}
+	if rows[0].Address != "TNewWalletOnly001" {
+		t.Fatalf("enabled wallet address = %q, want %q", rows[0].Address, "TNewWalletOnly001")
+	}
+}
+
+func TestSyncFromFileSkipsWhenPureGatewayModeDisabled(t *testing.T) {
+	viper.Reset()
+	defer viper.Reset()
+
+	cleanup := testutil.SetupTestDatabases(t)
+	defer cleanup()
+
+	oldWallet, err := data.AddWalletAddressWithNetwork("tron", "TAdminModeWalletShouldStay001")
+	if err != nil {
+		t.Fatalf("seed old wallet: %v", err)
+	}
+
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "gateway.yaml")
+	content := `
+wallets:
+  - network: tron
+    address: TConfigWalletIgnored001
+    enabled: true
+`
+	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+		t.Fatalf("write gateway config: %v", err)
+	}
+
+	viper.Set("gateway_config", configPath)
+	viper.Set("gateway_pure_mode", false)
+
+	if err := SyncFromFile(); err != nil {
+		t.Fatalf("SyncFromFile(): %v", err)
+	}
+
+	keptWallet, err := data.GetWalletAddressByNetworkAndAddress("tron", oldWallet.Address)
+	if err != nil {
+		t.Fatalf("reload old wallet: %v", err)
+	}
+	if keptWallet.Status != mdb.TokenStatusEnable {
+		t.Fatalf("old wallet status = %d, want %d", keptWallet.Status, mdb.TokenStatusEnable)
+	}
+
+	ignoredWallet, err := data.GetWalletAddressByNetworkAndAddress("tron", "TConfigWalletIgnored001")
+	if err != nil {
+		t.Fatalf("reload ignored wallet: %v", err)
+	}
+	if ignoredWallet.ID != 0 {
+		t.Fatalf("config wallet was created in admin mode, id=%d", ignoredWallet.ID)
 	}
 }

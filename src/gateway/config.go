@@ -87,6 +87,10 @@ type NotificationChannelConfig struct {
 }
 
 func SyncFromFile() error {
+	if !config.IsPureGatewayMode() {
+		return nil
+	}
+
 	path := config.GetGatewayConfigPath()
 	if path == "" {
 		return nil
@@ -192,12 +196,14 @@ func syncMerchants(rows []MerchantConfig) error {
 }
 
 func syncWallets(rows []WalletConfig) error {
+	desired := make(map[string]struct{}, len(rows))
 	for _, item := range rows {
 		network := strings.ToLower(strings.TrimSpace(item.Network))
 		address := strings.TrimSpace(item.Address)
 		if network == "" || address == "" {
 			continue
 		}
+		desired[walletKey(network, address)] = struct{}{}
 		enabled := true
 		if item.Enabled != nil {
 			enabled = *item.Enabled
@@ -223,6 +229,22 @@ func syncWallets(rows []WalletConfig) error {
 			"status": status,
 		}
 		if err = dao.Mdb.Model(&mdb.WalletAddress{}).Where("id = ?", existing.ID).Updates(fields).Error; err != nil {
+			return err
+		}
+	}
+
+	allWallets, err := data.GetAllWalletAddress()
+	if err != nil {
+		return err
+	}
+	for _, row := range allWallets {
+		if _, ok := desired[walletKey(row.Network, row.Address)]; ok {
+			continue
+		}
+		if row.Status == mdb.TokenStatusDisable {
+			continue
+		}
+		if err := data.ChangeWalletAddressStatus(row.ID, mdb.TokenStatusDisable); err != nil {
 			return err
 		}
 	}
@@ -467,6 +489,16 @@ func normalizeWalletSource(source string) string {
 	default:
 		return mdb.WalletSourceManual
 	}
+}
+
+func walletKey(network, address string) string {
+	network = strings.ToLower(strings.TrimSpace(network))
+	address = strings.TrimSpace(address)
+	switch network {
+	case mdb.NetworkEthereum, mdb.NetworkBsc, mdb.NetworkPolygon, mdb.NetworkPlasma:
+		address = strings.ToLower(address)
+	}
+	return network + "\x00" + address
 }
 
 func inferSettingGroup(key string) string {
